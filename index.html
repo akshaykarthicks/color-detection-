@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #image-container {
+            position: relative;
+            margin: auto;
+            width: 80%;
+        }
+
+        #image {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: auto;
+            cursor: crosshair; /* Change cursor to crosshair */
+        }
+
+        #color-info {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <h1>Color Detection</h1>
+    <div id="image-container">
+        <!-- Input field for image upload -->
+        <input type="file" id="upload" accept="image/*">
+        <!-- Placeholder for the uploaded image -->
+        <img id="image" src="#" alt="Color Image">
+        <!-- Placeholder for color information -->
+        <div id="color-info"></div>
+    </div>
+    <script>
+        // Function to handle the double-click event
+        function handleDoubleClick(event) {
+            var rect = event.target.getBoundingClientRect();
+            var x = Math.round(event.clientX - rect.left);
+            var y = Math.round(event.clientY - rect.top);
+            console.log('Clicked at:', x, y); // Log click coordinates for debugging
+            
+            var img = document.getElementById('image');
+            var canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            var pixel = ctx.getImageData(x, y, 1, 1).data;
+            
+            var formData = new FormData();
+            formData.append('image', document.getElementById('upload').files[0]);
+            formData.append('x', x);
+            formData.append('y', y);
+            fetch('/color_detect', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('color-info').innerText = data;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('color-info').innerText = 'Error: ' + error.message;
+            });
+        }
+
+        // Add event listener once the DOM content is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            var image = document.getElementById('image');
+            // Attach the double-click event listener to the image
+            image.addEventListener('dblclick', handleDoubleClick);
+        });
+
+        // Function to handle file upload
+        document.getElementById('upload').addEventListener('change', function(event) {
+            var file = event.target.files[0]; // Get the uploaded file
+            var reader = new FileReader(); // Create a FileReader object
+            reader.onload = function(e) {
+                document.getElementById('image').src = e.target.result; // Display the uploaded image
+            };
+            reader.readAsDataURL(file); // Read the file as a Data URL
+        });
+    </script>
+</body>
+</html>
